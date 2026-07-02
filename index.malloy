@@ -1,0 +1,3 @@
+import { auto_recalls } from 'auto_recalls.malloy'
+
+export { auto_recalls }

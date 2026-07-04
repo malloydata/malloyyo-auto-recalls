@@ -1,4 +1,13 @@
+##! experimental.givens
+
 #" Auto recalls from the NHTS Aanalyzed by component category and recall trends over time. Data source: https://www.nhtsa.gov/recalls"
+
+given:
+  // Manufacturer to focus the manufacturer dashboard on (matches `Manufacturer` exactly).
+  MANUFACTURER :: string is 'Ford Motor Company'
+  // Free-text term to search for a particular vehicle across recall Subject / Description.
+  SEARCH :: string is 'Tundra'
+
 source: auto_recalls is duckdb.table('https://storage.googleapis.com/malloyyo/auto_recalls/auto_recalls.parquet') extend {
   measure:
     recall_count is count()
@@ -68,9 +77,89 @@ source: auto_recalls is duckdb.table('https://storage.googleapis.com/malloyyo/au
     limit: 10
   }
 
+  # line_chart
   view: by_year_line_chart is {
     group_by: recall_year is year(`Report Received Date`)
     aggregate: recall_count
     order_by: recall_year
   }
+
+  // Reusable per-manufacturer / per-search building blocks --------------------
+
+  # line_chart
+  view: recalls_by_year is {
+    group_by: recall_year is year(`Report Received Date`)
+    aggregate: recall_count
+    order_by: recall_year
+  }
+
+  # bar_chart
+  view: recalls_by_category is {
+    group_by: component_category
+    aggregate: recall_count
+    order_by: recall_count desc
+  }
+
+  view: recall_detail is {
+    group_by:
+      recall_date is `Report Received Date`
+      `NHTSA ID`
+      # link
+      recall_url
+      Subject
+      Component
+      component_category
+      `Potentially Affected`
+    order_by: recall_date desc
+    limit: 25
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dashboards (named queries driven by givens)
+// ---------------------------------------------------------------------------
+
+# dashboard
+query: manufacturer_dashboard is auto_recalls -> {
+  where: Manufacturer = $MANUFACTURER
+  aggregate:
+    recall_count
+    total_affected_vehicles
+    park_outside_advisories is recall_count { where: `Park Outside Advisory` }
+    do_not_drive_advisories is recall_count { where: `Do Not Drive Advisory` }
+  nest:
+    recalls_by_year
+    recalls_by_category
+    recent_recalls is recall_detail
+}
+
+# dashboard
+query: vehicle_search_dashboard is auto_recalls -> {
+  where:
+    lower(Subject) ~ concat('%', lower($SEARCH), '%')
+    or lower(`Recall Description`) ~ concat('%', lower($SEARCH), '%')
+  aggregate:
+    recall_count
+    total_affected_vehicles
+  nest:
+    # bar_chart
+    top_manufacturers is {
+      group_by: Manufacturer
+      aggregate: recall_count
+      order_by: recall_count desc
+      limit: 15
+    }
+    recalls_by_year
+    recalls_by_category
+    matching_recalls is {
+      group_by:
+        recall_date is `Report Received Date`
+        Manufacturer
+        # link
+        recall_url
+        Subject
+        `Potentially Affected`
+      order_by: recall_date desc
+      limit: 25
+    }
 }

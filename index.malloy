@@ -2,14 +2,24 @@ import {
   auto_recalls,
   MANUFACTURER,
   SEARCH,
+  COMPONENT,
+  PARK_OUTSIDE,
+  DO_NOT_DRIVE,
+  manufacturer_options,
   manufacturer_dashboard,
-  vehicle_search_dashboard
+  vehicle_search_dashboard,
+  recall_list
 } from 'auto_recalls.malloy'
 
 export {
   auto_recalls,
   MANUFACTURER,
   SEARCH,
+  COMPONENT,
+  PARK_OUTSIDE,
+  DO_NOT_DRIVE,
+  manufacturer_options,
   manufacturer_dashboard,
-  vehicle_search_dashboard
+  vehicle_search_dashboard,
+  recall_list
 }

@@ -1,31 +1,35 @@
 // Vehicle Recall Search — type a model / keyword and see every matching recall.
-// Drives the model's `vehicle_search_dashboard` query via the SEARCH given.
-// The text box is debounced so we don't re-run the query on every keystroke.
-import { useState, useEffect } from "react";
+// $SEARCH is a filter<string> matched against the model's lowercase
+// subject+description haystack; this component commits a contains-filter
+// ('%tundra%') built with the runtime's `filters` helpers, so escaping is
+// always correct. The text box is debounced so we don't re-run the query on
+// every keystroke.
+import React, { useState, useEffect } from "react";
+import { Panel, filters, useGiven } from "@malloyyo/dashboard";
 
 const SUGGESTIONS = ["Tundra", "Bolt", "F-150", "Takata", "airbag", "Silverado"];
 
-export default function Dashboard({ manifest, givens, setGiven, Panel }) {
-  const spec = manifest.givens.find((g) => g.name === "SEARCH");
-  const committed: string = givens.SEARCH ?? spec?.default ?? "";
+// The human term inside a contains-filter: '%tundra%' -> 'tundra'.
+const termOf = (src: string) => (src ?? "").replace(/^%|%$/g, "").replace(/\\(.)/g, "$1");
+
+export default function Dashboard({ givens }) {
+  const search = useGiven("SEARCH");
+  const committed = termOf(search.value ?? "");
+  const commitTerm = (term: string) => {
+    const next = term.trim();
+    if (next && next.toLowerCase() !== committed) search.set(filters.contains(next.toLowerCase()));
+  };
 
   // Local input state; commit to the given (which re-runs the query) on a delay.
   const [text, setText] = useState(committed);
   useEffect(() => {
-    const id = setTimeout(() => {
-      const next = text.trim();
-      if (next && next !== committed) setGiven("SEARCH", next);
-    }, 450);
+    const id = setTimeout(() => commitTerm(text), 450);
     return () => clearTimeout(id);
   }, [text]);
 
-  const commitNow = () => {
-    const next = text.trim();
-    if (next && next !== committed) setGiven("SEARCH", next);
-  };
   const pick = (s: string) => {
     setText(s);
-    setGiven("SEARCH", s);
+    commitTerm(s);
   };
 
   return (
@@ -43,10 +47,10 @@ export default function Dashboard({ manifest, givens, setGiven, Panel }) {
           value={text}
           placeholder="Search a model or keyword — e.g. Tundra, F-150, airbag"
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && commitNow()}
+          onKeyDown={(e) => e.key === "Enter" && commitTerm(text)}
           autoFocus
         />
-        <button style={styles.button} onClick={commitNow}>
+        <button style={styles.button} onClick={() => commitTerm(text)}>
           Search
         </button>
       </div>
@@ -59,7 +63,7 @@ export default function Dashboard({ manifest, givens, setGiven, Panel }) {
             onClick={() => pick(s)}
             style={{
               ...styles.chip,
-              ...(s === committed ? styles.chipActive : null),
+              ...(s.toLowerCase() === committed ? styles.chipActive : null),
             }}
           >
             {s}

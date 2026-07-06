@@ -1,11 +1,19 @@
 // Manufacturer Recall Profile — pick a manufacturer, see its recall history.
-// Renders the model's `manufacturer_dashboard` query, driven by the MANUFACTURER
-// given. All the charts/tables come from Malloy's renderer inside <Panel>.
+// The `# artifact` tag on the model's `manufacturer_dashboard` query declares
+// this dashboard (including its Ford starting value); $MANUFACTURER's
+// declaration carries the # suggest tag that fills the dropdown (top
+// manufacturers by recall count). All the charts/tables come from Malloy's
+// renderer inside <Panel>.
+import React from "react";
+import { Panel, filters, useGiven, useOptions } from "@malloyyo/dashboard";
 
-export default function Dashboard({ manifest, givens, setGiven, Panel }) {
-  const spec = manifest.givens.find((g) => g.name === "MANUFACTURER");
-  const options: string[] = spec?.options ?? [];
-  const current: string = givens.MANUFACTURER ?? spec?.default ?? options[0];
+export default function Dashboard({ givens }) {
+  const manufacturer = useGiven("MANUFACTURER");
+  const { options, loading } = useOptions("MANUFACTURER");
+  // The given holds a filter EXPRESSION; option values are raw column values,
+  // so escape on commit ('Tesla, Inc.' would otherwise parse as alternatives)
+  // and unwrap for display.
+  const current: string = filters.values(manufacturer.value ?? "")?.[0] ?? "";
 
   return (
     <div style={styles.page}>
@@ -19,9 +27,9 @@ export default function Dashboard({ manifest, givens, setGiven, Panel }) {
           <select
             style={styles.select}
             value={current}
-            onChange={(e) => setGiven("MANUFACTURER", e.target.value)}
+            onChange={(e) => manufacturer.set(filters.oneOf(e.target.value))}
           >
-            {options.map((o) => (
+            {(loading ? [current] : options).map((o) => (
               <option key={o} value={o}>
                 {o}
               </option>

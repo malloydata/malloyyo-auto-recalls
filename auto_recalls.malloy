@@ -2,11 +2,23 @@
 
 #" Auto recalls from the NHTS Aanalyzed by component category and recall trends over time. Data source: https://www.nhtsa.gov/recalls"
 
+// The dashboard filter contract. Filter expressions, so a value can be one
+// manufacturer ('Ford Motor Company'), several ('Ford%, Tesla%'), or '' = all.
+// The # tags drive the dashboard controls (label, control kind, suggestions).
 given:
-  // Manufacturer to focus the manufacturer dashboard on (matches `Manufacturer` exactly).
-  MANUFACTURER :: string is 'Ford Motor Company'
-  // Free-text term to search for a particular vehicle across recall Subject / Description.
-  SEARCH :: string is 'Tundra'
+  # label="Manufacturer" control=select suggest { query=manufacturer_options dimension=Manufacturer }
+  MANUFACTURER :: filter<string> is f''
+  #" Matches subject + description, lowercase — search with '%fuel pump%'
+  # label="Search"
+  SEARCH :: filter<string> is f''
+  # label="Component" control=select suggest { source=auto_recalls dimension=Component }
+  COMPONENT :: filter<string> is f''
+  // When true, keep only recalls with a "park outside" advisory.
+  # label="Park outside advisory"
+  PARK_OUTSIDE :: boolean is false
+  // When true, keep only recalls with a "do not drive" advisory.
+  # label="Do not drive advisory"
+  DO_NOT_DRIVE :: boolean is false
 
 source: auto_recalls is duckdb.table('https://storage.googleapis.com/malloyyo/auto_recalls/auto_recalls.parquet') extend {
   measure:
@@ -14,6 +26,10 @@ source: auto_recalls is duckdb.table('https://storage.googleapis.com/malloyyo/au
     percent_of_recalls is recall_count / all(recall_count) * 100
     total_affected_vehicles is `Potentially Affected`.sum()
   dimension: recall_url is concat('https://www.nhtsa.gov/recalls?nhtsaId=', `NHTSA ID`)
+
+  // One lowercase haystack for the SEARCH given — dashboards bind substring
+  // filters like '%tundra%' against it.
+  dimension: search_text is lower(concat(Subject, ' ', `Recall Description`))
 
   dimension: component_category is pick 'Driver assistance (ADAS)' when
     (Component = 'FORWARD COLLISION AVOIDANCE')
@@ -116,12 +132,24 @@ source: auto_recalls is duckdb.table('https://storage.googleapis.com/malloyyo/au
 }
 
 // ---------------------------------------------------------------------------
-// Dashboards (named queries driven by givens)
+// Dashboards: `# artifact`-tagged queries (the tag is the manifest — title,
+// slug, and per-dashboard given defaults). `# dashboard` is the separate
+// renderer tag (result layout). ./dashboards/<name>/Dashboard.tsx optionally
+// customizes the component.
 // ---------------------------------------------------------------------------
 
+#" Top manufacturers by recall count — options for the MANUFACTURER control
+query: manufacturer_options is auto_recalls -> {
+  group_by: Manufacturer
+  aggregate: recall_count
+  order_by: recall_count desc
+  limit: 60
+}
+
 # dashboard
+# artifact { name="manufacturer" title="Manufacturer Recall Profile" givens { MANUFACTURER="Ford Motor Company" } }
 query: manufacturer_dashboard is auto_recalls -> {
-  where: Manufacturer = $MANUFACTURER
+  where: Manufacturer ~ $MANUFACTURER
   aggregate:
     recall_count
     total_affected_vehicles
@@ -134,10 +162,9 @@ query: manufacturer_dashboard is auto_recalls -> {
 }
 
 # dashboard
+# artifact { name="vehicle-search" title="Vehicle Recall Search" givens { SEARCH="%tundra%" } }
 query: vehicle_search_dashboard is auto_recalls -> {
-  where:
-    lower(Subject) ~ concat('%', lower($SEARCH), '%')
-    or lower(`Recall Description`) ~ concat('%', lower($SEARCH), '%')
+  where: search_text ~ $SEARCH
   aggregate:
     recall_count
     total_affected_vehicles
@@ -162,4 +189,29 @@ query: vehicle_search_dashboard is auto_recalls -> {
       order_by: recall_date desc
       limit: 25
     }
+}
+
+// A filterable flat list of recalls. Every filter is optional — an empty
+// filter expression means "no filter" (no `'' or` dance needed), and the
+// advisory flags only narrow the list when checked.
+# artifact { name="recall-list" title="Recall List" }
+query: recall_list is auto_recalls -> {
+  where:
+    Manufacturer ~ $MANUFACTURER
+    and Component ~ $COMPONENT
+    and search_text ~ $SEARCH
+    and (not $PARK_OUTSIDE or `Park Outside Advisory`)
+    and (not $DO_NOT_DRIVE or `Do Not Drive Advisory`)
+  select:
+    recall_date is `Report Received Date`
+    Manufacturer
+    # link
+    recall_url
+    Subject
+    Component
+    `Potentially Affected`
+    `Park Outside Advisory`
+    `Do Not Drive Advisory`
+  order_by: recall_date desc
+  limit: 500
 }

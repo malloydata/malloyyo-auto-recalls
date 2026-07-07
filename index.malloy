@@ -5,10 +5,7 @@ import {
   COMPONENT,
   PARK_OUTSIDE,
   DO_NOT_DRIVE,
-  manufacturer_options,
-  manufacturer_dashboard,
-  vehicle_search_dashboard,
-  recall_list
+  manufacturer_options
 } from 'auto_recalls.malloy'
 
 export {
@@ -18,8 +15,5 @@ export {
   COMPONENT,
   PARK_OUTSIDE,
   DO_NOT_DRIVE,
-  manufacturer_options,
-  manufacturer_dashboard,
-  vehicle_search_dashboard,
-  recall_list
+  manufacturer_options
 }

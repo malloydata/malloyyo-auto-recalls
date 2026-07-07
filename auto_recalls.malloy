@@ -129,89 +129,91 @@ source: auto_recalls is duckdb.table('https://storage.googleapis.com/malloyyo/au
     order_by: recall_date desc
     limit: 25
   }
+
+  // Dashboards: `# artifact`-tagged VIEWS (the tag is the manifest — title,
+  // slug, and per-dashboard given defaults). Each runs as
+  // `run: auto_recalls -> <view>`. `# dashboard` is the separate renderer tag
+  // (result layout). ./dashboards/<name>/Dashboard.tsx optionally customizes
+  // the component.
+
+  # dashboard
+  # artifact { name="manufacturer" title="Manufacturer Recall Profile" givens { MANUFACTURER="Ford Motor Company" } }
+  view: manufacturer_dashboard is {
+    where: Manufacturer ~ $MANUFACTURER
+    aggregate:
+      recall_count
+      total_affected_vehicles
+      park_outside_advisories is recall_count { where: `Park Outside Advisory` }
+      do_not_drive_advisories is recall_count { where: `Do Not Drive Advisory` }
+    nest:
+      recalls_by_year
+      recalls_by_category
+      recent_recalls is recall_detail
+  }
+
+  # dashboard
+  # artifact { name="vehicle-search" title="Vehicle Recall Search" givens { SEARCH="%tundra%" } }
+  view: vehicle_search_dashboard is {
+    where: search_text ~ $SEARCH
+    aggregate:
+      recall_count
+      total_affected_vehicles
+    nest:
+      # bar_chart
+      top_manufacturers is {
+        group_by: Manufacturer
+        aggregate: recall_count
+        order_by: recall_count desc
+        limit: 15
+      }
+      recalls_by_year
+      recalls_by_category
+      matching_recalls is {
+        group_by:
+          recall_date is `Report Received Date`
+          Manufacturer
+          # link
+          recall_url
+          Subject
+          `Potentially Affected`
+        order_by: recall_date desc
+        limit: 25
+      }
+  }
+
+  // A filterable flat list of recalls. Every filter is optional — an empty
+  // filter expression means "no filter" (no `'' or` dance needed), and the
+  // advisory flags only narrow the list when checked.
+  # artifact { name="recall-list" title="Recall List" }
+  view: recall_list is {
+    where:
+      Manufacturer ~ $MANUFACTURER
+      and Component ~ $COMPONENT
+      and search_text ~ $SEARCH
+      and (not $PARK_OUTSIDE or `Park Outside Advisory`)
+      and (not $DO_NOT_DRIVE or `Do Not Drive Advisory`)
+    select:
+      recall_date is `Report Received Date`
+      Manufacturer
+      # link
+      recall_url
+      Subject
+      Component
+      `Potentially Affected`
+      `Park Outside Advisory`
+      `Do Not Drive Advisory`
+    order_by: recall_date desc
+    limit: 500
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Dashboards: `# artifact`-tagged queries (the tag is the manifest — title,
-// slug, and per-dashboard given defaults). `# dashboard` is the separate
-// renderer tag (result layout). ./dashboards/<name>/Dashboard.tsx optionally
-// customizes the component.
-// ---------------------------------------------------------------------------
-
+// The MANUFACTURER control's options — a governed suggest query (referenced by
+// `suggest { query=manufacturer_options }`). Suggest helpers stay top-level
+// queries; only the dashboards themselves are `# artifact` views on the source.
 #" Top manufacturers by recall count — options for the MANUFACTURER control
 query: manufacturer_options is auto_recalls -> {
   group_by: Manufacturer
   aggregate: recall_count
   order_by: recall_count desc
   limit: 60
-}
-
-# dashboard
-# artifact { name="manufacturer" title="Manufacturer Recall Profile" givens { MANUFACTURER="Ford Motor Company" } }
-query: manufacturer_dashboard is auto_recalls -> {
-  where: Manufacturer ~ $MANUFACTURER
-  aggregate:
-    recall_count
-    total_affected_vehicles
-    park_outside_advisories is recall_count { where: `Park Outside Advisory` }
-    do_not_drive_advisories is recall_count { where: `Do Not Drive Advisory` }
-  nest:
-    recalls_by_year
-    recalls_by_category
-    recent_recalls is recall_detail
-}
-
-# dashboard
-# artifact { name="vehicle-search" title="Vehicle Recall Search" givens { SEARCH="%tundra%" } }
-query: vehicle_search_dashboard is auto_recalls -> {
-  where: search_text ~ $SEARCH
-  aggregate:
-    recall_count
-    total_affected_vehicles
-  nest:
-    # bar_chart
-    top_manufacturers is {
-      group_by: Manufacturer
-      aggregate: recall_count
-      order_by: recall_count desc
-      limit: 15
-    }
-    recalls_by_year
-    recalls_by_category
-    matching_recalls is {
-      group_by:
-        recall_date is `Report Received Date`
-        Manufacturer
-        # link
-        recall_url
-        Subject
-        `Potentially Affected`
-      order_by: recall_date desc
-      limit: 25
-    }
-}
-
-// A filterable flat list of recalls. Every filter is optional — an empty
-// filter expression means "no filter" (no `'' or` dance needed), and the
-// advisory flags only narrow the list when checked.
-# artifact { name="recall-list" title="Recall List" }
-query: recall_list is auto_recalls -> {
-  where:
-    Manufacturer ~ $MANUFACTURER
-    and Component ~ $COMPONENT
-    and search_text ~ $SEARCH
-    and (not $PARK_OUTSIDE or `Park Outside Advisory`)
-    and (not $DO_NOT_DRIVE or `Do Not Drive Advisory`)
-  select:
-    recall_date is `Report Received Date`
-    Manufacturer
-    # link
-    recall_url
-    Subject
-    Component
-    `Potentially Affected`
-    `Park Outside Advisory`
-    `Do Not Drive Advisory`
-  order_by: recall_date desc
-  limit: 500
 }

@@ -1,0 +1,1 @@
+source: auto_recalls_table is  duckdb.table('https://storage.googleapis.com/malloyyo/auto_recalls/auto_recalls.parquet')

@@ -137,22 +137,24 @@ source: auto_recalls is auto_recalls_table extend {
   // (result layout). ./dashboards/<name>/Dashboard.tsx optionally customizes
   // the component.
 
-  # dashboard
+  # dashboard {columns=1}
   # artifact { name="manufacturer" title="Manufacturer Recall Profile" givens { MANUFACTURER="Ford Motor Company" } }
   view: manufacturer_dashboard is {
     where: Manufacturer ~ $MANUFACTURER
-    aggregate:
-      recall_count
-      total_affected_vehicles
-      park_outside_advisories is recall_count { where: `Park Outside Advisory` }
-      do_not_drive_advisories is recall_count { where: `Do Not Drive Advisory` }
+    nest: stats is {
+      aggregate:
+        recall_count
+        total_affected_vehicles
+        park_outside_advisories is recall_count { where: `Park Outside Advisory` }
+        do_not_drive_advisories is recall_count { where: `Do Not Drive Advisory` }
+    }
     nest:
       recalls_by_year
       recalls_by_category
       recent_recalls is recall_detail
   }
 
-  # dashboard
+  # dashboard {columns=1}
   # artifact { name="vehicle-search" title="Vehicle Recall Search" givens { SEARCH="%tundra%" } }
   view: vehicle_search_dashboard is {
     where: search_text ~ $SEARCH
@@ -160,15 +162,18 @@ source: auto_recalls is auto_recalls_table extend {
       recall_count
       total_affected_vehicles
     nest:
-      # bar_chart
+      # bar_chart colspan=2
       top_manufacturers is {
         group_by: Manufacturer
         aggregate: recall_count
         order_by: recall_count desc
         limit: 15
       }
+      # colspan=2
       recalls_by_year
+      # colspan=2
       recalls_by_category
+      # colspan=2
       matching_recalls is {
         group_by:
           recall_date is `Report Received Date`

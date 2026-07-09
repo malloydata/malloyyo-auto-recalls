@@ -20,7 +20,8 @@ given:
   # label="Do not drive advisory"
   DO_NOT_DRIVE :: boolean is false
 
-source: auto_recalls is duckdb.table('https://storage.googleapis.com/malloyyo/auto_recalls/auto_recalls.parquet') extend {
+import "md.malloy"  //  switch to gs.malloy for Google Sheets data source
+source: auto_recalls is auto_recalls_table extend {
   measure:
     recall_count is count()
     percent_of_recalls is recall_count / all(recall_count) * 100

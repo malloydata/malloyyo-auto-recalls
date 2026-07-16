@@ -138,7 +138,6 @@ source: auto_recalls is auto_recalls_table extend {
   // the component.
 
   # dashboard {columns=6}
-  # artifact { name="manufacturer" title="Manufacturer Recall Profile" givens { MANUFACTURER="Ford Motor Company" } }
   view: manufacturer_dashboard is {
     where: Manufacturer ~ $MANUFACTURER
     # colspan=2
@@ -157,7 +156,6 @@ source: auto_recalls is auto_recalls_table extend {
   }
 
   # dashboard {columns=6}
-  # artifact { name="vehicle-search" title="Vehicle Recall Search" givens { SEARCH="%tundra%" } }
   view: vehicle_search_dashboard is {
     where: search_text ~ $SEARCH
     # colspan=2
@@ -193,7 +191,6 @@ source: auto_recalls is auto_recalls_table extend {
   // A filterable flat list of recalls. Every filter is optional — an empty
   // filter expression means "no filter" (no `'' or` dance needed), and the
   // advisory flags only narrow the list when checked.
-  # artifact { name="recall-list" title="Recall List" }
   view: recall_list is {
     where:
       Manufacturer ~ $MANUFACTURER

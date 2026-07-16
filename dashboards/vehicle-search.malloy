@@ -1,0 +1,4 @@
+##! experimental.givens
+import "../auto_recalls.malloy"
+
+## artifact { title="Vehicle Recall Search" tiles=["auto_recalls -> vehicle_search_dashboard"] givens { SEARCH="%tundra%" } }

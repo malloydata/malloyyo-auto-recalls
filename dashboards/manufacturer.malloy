@@ -1,0 +1,4 @@
+##! experimental.givens
+import "../auto_recalls.malloy"
+
+## artifact { title="Manufacturer Recall Profile" tiles=["auto_recalls -> manufacturer_dashboard"] givens { MANUFACTURER="Ford Motor Company" } }

@@ -1,0 +1,4 @@
+##! experimental.givens
+import "../auto_recalls.malloy"
+
+## artifact { title="Recall List" tiles=["auto_recalls -> recall_list"] }

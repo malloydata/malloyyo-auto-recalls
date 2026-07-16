@@ -10,12 +10,12 @@ import { Panel, filters, useGiven } from "@malloyyo/dashboard";
 const SUGGESTIONS = ["Tundra", "Bolt", "F-150", "Takata", "airbag", "Silverado"];
 
 // The human term inside a contains-filter: '%tundra%' -> 'tundra'.
-const termOf = (src: string) => (src ?? "").replace(/^%|%$/g, "").replace(/\\(.)/g, "$1");
+const termOf = (src) => (src ?? "").replace(/^%|%$/g, "").replace(/\\(.)/g, "$1");
 
 export default function Dashboard({ givens }) {
   const search = useGiven("SEARCH");
   const committed = termOf(search.value ?? "");
-  const commitTerm = (term: string) => {
+  const commitTerm = (term) => {
     const next = term.trim();
     if (next && next.toLowerCase() !== committed) search.set(filters.contains(next.toLowerCase()));
   };
@@ -27,7 +27,7 @@ export default function Dashboard({ givens }) {
     return () => clearTimeout(id);
   }, [text]);
 
-  const pick = (s: string) => {
+  const pick = (s) => {
     setText(s);
     commitTerm(s);
   };
@@ -84,7 +84,7 @@ export default function Dashboard({ givens }) {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles = {
   page: {
     fontFamily:
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

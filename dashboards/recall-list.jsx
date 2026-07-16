@@ -10,9 +10,9 @@ import { Panel, Checkbox, filters, useGiven, useOptions } from "@malloyyo/dashbo
 const ALL = ""; // empty filter expression = no filter
 
 // The human term inside a contains-filter: '%fuel pump%' -> 'fuel pump'.
-const termOf = (src: string) => (src ?? "").replace(/^%|%$/g, "").replace(/\\(.)/g, "$1");
+const termOf = (src) => (src ?? "").replace(/^%|%$/g, "").replace(/\\(.)/g, "$1");
 
-function FilterSelect({ given, allLabel }: { given: string; allLabel: string }) {
+function FilterSelect({ given, allLabel }) {
   const g = useGiven(given);
   const { options } = useOptions(given);
   // The given holds a filter EXPRESSION: '' = all, otherwise the picked column
@@ -28,7 +28,7 @@ function FilterSelect({ given, allLabel }: { given: string; allLabel: string }) 
         onChange={(e) => g.set(e.target.value === ALL ? ALL : filters.oneOf(e.target.value))}
       >
         <option value={ALL}>{allLabel}</option>
-        {options.map((o: string) => (
+        {options.map((o) => (
           <option key={o} value={o}>
             {o}
           </option>
@@ -113,7 +113,7 @@ export default function Dashboard({ givens, setGiven }) {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles = {
   page: {
     fontFamily:
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

@@ -13,7 +13,7 @@ export default function Dashboard({ givens }) {
   // The given holds a filter EXPRESSION; option values are raw column values,
   // so escape on commit ('Tesla, Inc.' would otherwise parse as alternatives)
   // and unwrap for display.
-  const current: string = filters.values(manufacturer.value ?? "")?.[0] ?? "";
+  const current = filters.values(manufacturer.value ?? "")?.[0] ?? "";
 
   return (
     <div style={styles.page}>
@@ -50,7 +50,7 @@ export default function Dashboard({ givens }) {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles = {
   page: {
     fontFamily:
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

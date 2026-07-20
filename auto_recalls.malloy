@@ -21,6 +21,7 @@ given:
   DO_NOT_DRIVE :: boolean is false
 
 import "md.malloy"  //  switch to gs.malloy for Google Sheets data source
+//import "gs.malloy"
 source: auto_recalls is auto_recalls_table extend {
   measure:
     recall_count is count()

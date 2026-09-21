@@ -1,0 +1,33 @@
+##! experimental.givens
+import "../auto_recalls.malloy"
+
+#" Where cars break — every NHTSA recall campaign mapped to the part of the car it fixes.
+# artifact { title="Recall Anatomy: where cars break" } dashboard {columns=4}
+query: recall_anatomy is auto_recalls -> {
+  where:
+    Manufacturer ~ $MANUFACTURER,
+    search_text ~ $SEARCH
+  # colspan=1
+  aggregate:
+    # label="Recall campaigns"
+    recall_count
+    # label="Vehicles named"
+    total_affected_vehicles
+    # label="Do-not-drive advisories"
+    do_not_drive_advisories
+    # label="Park-outside advisories"
+    park_outside_advisories
+  # colspan=2
+  nest:
+    # break
+    # label="Campaigns by part of the car"
+    recalls_by_category
+    # label="Vehicles named by part of the car"
+    vehicles_by_category
+    # colspan=4 label="The mix over time — share of campaigns by part"
+    campaign_mix_over_time is category_mix_by_year
+    # colspan=4 label="Component file — what fails, and who builds it"
+    anatomy is category_anatomy
+    # colspan=4 label="Largest campaigns by vehicles named"
+    biggest_campaigns is largest_campaigns
+}

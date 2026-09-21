@@ -27,6 +27,9 @@ source: auto_recalls is auto_recalls_table extend {
     recall_count is count()
     percent_of_recalls is recall_count / all(recall_count) * 100
     total_affected_vehicles is `Potentially Affected`.sum()
+    do_not_drive_advisories is recall_count { where: `Do Not Drive Advisory` }
+    park_outside_advisories is recall_count { where: `Park Outside Advisory` }
+    avg_completion_rate is round(`Completion Rate % (Blank - Not Reported)`.avg(), 1)
   dimension: recall_url is concat('https://www.nhtsa.gov/recalls?nhtsaId=', `NHTSA ID`)
 
   // One lowercase haystack for the SEARCH given — dashboards bind substring
@@ -132,6 +135,85 @@ source: auto_recalls is auto_recalls_table extend {
     limit: 25
   }
 
+  // Recall anatomy building blocks ------------------------------------------
+
+  # bar_chart { x=component_category y=total_affected_vehicles }
+  view: vehicles_by_category is {
+    group_by: component_category
+    aggregate: total_affected_vehicles
+    order_by: total_affected_vehicles desc
+  }
+
+  // How the mix of recalls has shifted: each year's campaigns split by part,
+  // as a share of that year's total (so a boom year doesn't dwarf the 1980s).
+  // The current year is still filling up, so it is left out.
+  # bar_chart { x=recall_year y=share_of_campaigns series=component_category stack x.limit=60 series.limit=12 }
+  view: category_mix_by_year is {
+    where: `Report Received Date` >= @1980 and year(`Report Received Date`) < year(now)
+    group_by:
+      recall_year is year(`Report Received Date`)
+      component_category
+    aggregate: share_of_campaigns is recall_count / all(recall_count, recall_year) * 100
+    order_by: recall_year
+  }
+
+  // One row per part of the car, with the NHTSA component codes and the makers
+  // behind it nested underneath.
+  view: category_anatomy is {
+    # label="Part of the car"
+    group_by: component_category
+    aggregate:
+      # label="Campaigns"
+      recall_count
+      # label="Vehicles named"
+      total_affected_vehicles
+      # label="Do not drive"
+      do_not_drive_advisories
+      # label="Park outside"
+      park_outside_advisories
+      # label="Avg. fix completion %"
+      avg_completion_rate
+    nest:
+      # label="NHTSA component codes"
+      top_components is {
+        group_by: Component
+        aggregate:
+          # label="Campaigns"
+          recall_count
+        order_by: recall_count desc
+        limit: 5
+      }
+      # label="Most campaigns by maker"
+      top_manufacturers is {
+        group_by: Manufacturer
+        aggregate:
+          # label="Campaigns"
+          recall_count
+        order_by: recall_count desc
+        limit: 5
+      }
+    order_by: recall_count desc
+  }
+
+  // The campaigns that named the most vehicles, whatever the part.
+  view: largest_campaigns is {
+    group_by:
+      # label="Reported"
+      recall_date is `Report Received Date`
+      Manufacturer
+      # label="Part of the car"
+      component_category
+      Subject
+      # link label="NHTSA record"
+      recall_url
+      # label="Vehicles named"
+      affected_vehicles is `Potentially Affected`
+      # label="Do not drive"
+      `Do Not Drive Advisory`
+    order_by: affected_vehicles desc
+    limit: 20
+  }
+
   // Dashboards: `# artifact`-tagged VIEWS (the tag is the manifest — title,
   // slug, and per-dashboard given defaults). Each runs as
   // `run: auto_recalls -> <view>`. `# dashboard` is the separate renderer tag
@@ -145,8 +227,8 @@ source: auto_recalls is auto_recalls_table extend {
     aggregate:
       recall_count
       total_affected_vehicles
-      park_outside_advisories is recall_count { where: `Park Outside Advisory` }
-      do_not_drive_advisories is recall_count { where: `Do Not Drive Advisory` }
+      park_outside_advisories
+      do_not_drive_advisories
     # colspan=3
     nest:
       # break

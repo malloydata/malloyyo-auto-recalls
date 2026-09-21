@@ -10,10 +10,11 @@ for the design).
 - `auto_recalls.malloy` — the `auto_recalls` source: recalls with a derived
   `component_category` classification, a lowercase `search_text` haystack,
   measures (`recall_count`, `total_affected_vehicles`, …), the dashboard givens,
-  a `manufacturer_options` suggestions query, and the reusable views the
-  dashboards nest.
+  a `manufacturer_options` suggestions query, and the dashboard views that the
+  `dashboards/*.malloy` files point `tiles=` at.
 - `index.malloy` — entry point that re-exports the source, givens, and queries.
-- `dashboards/<slug>/Dashboard.tsx` — the dashboards' custom React components.
+- `dashboards/<slug>.malloy` — one file per dashboard; the filename is the slug.
+- `dashboards/<slug>.jsx` — the optional custom React component for that slug.
 
 Data source: `https://storage.googleapis.com/malloyyo/auto_recalls/auto_recalls.parquet`
 (NHTSA recalls: https://www.nhtsa.gov/recalls)
@@ -51,17 +52,20 @@ Notable patterns exercised here:
   a bare comma parses as filter alternatives).
 - **Boolean givens** → the `<Checkbox given="PARK_OUTSIDE"/>` widget.
 
-`recall-anatomy` shows the other shape the guide prefers: the query (and its
-`where: … ~ $GIVEN` mapping) lives in `dashboards/recall-anatomy.malloy` itself,
-nesting given-free views from the model, rather than pointing `tiles=` at a
-dashboard view declared in `auto_recalls.malloy`.
+`recall-anatomy` is the one dashboard with a **custom component**: an SVG car
+blueprint whose bubbles grow with the measure you pick, and a per-part "component
+file" beside it. Its five queries live in `dashboards/recall-anatomy.malloy` as
+named queries — the component only names them with
+`useQuery({ query: "<name>" })` and draws the rows, so the ranking and top-N stay
+in Malloy. Per-part selection and the measure toggle are `useUrlState`, not
+givens, so the view is shareable by URL without widening the query contract.
 
 | slug | query | notes |
 |---|---|---|
 | `manufacturer` | `manufacturer_dashboard` | select fed by `manufacturer_options`, Ford default |
 | `vehicle-search` | `vehicle_search_dashboard` | debounced search, `%tundra%` default |
 | `recall-list` | `recall_list` | every filter optional, Checkbox widgets, Clear button |
-| `recall-anatomy` | `recall_anatomy` | query lives in the dashboard file, 4-column grid, stacked mix-over-time |
+| `recall-anatomy` | `category_summary` (+ 4 more) | custom `recall-anatomy.jsx` component, queries named in the dashboard file |
 
 ## Running
 
